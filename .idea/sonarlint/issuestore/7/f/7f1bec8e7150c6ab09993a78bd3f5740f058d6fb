@@ -1,0 +1,7 @@
+
+U	java:S106"9Replace this use of System.out or System.err by a logger.(Ü†‰ê8Çöƒ.
+U	java:S106"9Replace this use of System.out or System.err by a logger.(æ²øÿ8öœ„.
+M
+java:S1481"0Remove this unused "suffixArray" local variable.(şÁ¼ß8…ÔË„.
+\
+java:S1854"?Remove this useless assignment to local variable "suffixArray".(şÁ¼ß8…ÔË„.

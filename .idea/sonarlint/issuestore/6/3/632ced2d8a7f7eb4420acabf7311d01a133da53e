@@ -1,0 +1,13 @@
+
+r	java:S117"QRename this local variable to match the regular expression '^[a-z][a-zA-Z0-9]*$'.(®â¼œùÿÿÿÿ8éÎ”Š.
+r	java:S117"QRename this local variable to match the regular expression '^[a-z][a-zA-Z0-9]*$'.(Ï£±ûÿÿÿÿ8éÎ”Š.
+J	java:S108_")Either remove or fill this block of code.(É€á×üÿÿÿÿ8¶Ğ÷‹.
+m	java:S117"QRename this local variable to match the regular expression '^[a-z][a-zA-Z0-9]*$'.(íïõ 8éÎ”Š.
+E
+java:S1481"(Remove this unused "PRM" local variable.(Ä×ÍŸ8—ùº”¡.
+T
+java:S1854"7Remove this useless assignment to local variable "PRM".(Ä×ÍŸ8—ùº”¡.
+m	java:S117"QRename this local variable to match the regular expression '^[a-z][a-zA-Z0-9]*$'.(Ä×ÍŸ8éÎ”Š.
+]	java:S125
+"<This block of commented-out lines of code should be removed.(ï©´ïøÿÿÿÿ8şÚŒ.
+X	java:S125B"<This block of commented-out lines of code should be removed.(“Ñ¥°8—ùº”¡.
