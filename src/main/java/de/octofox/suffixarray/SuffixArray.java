@@ -1,6 +1,7 @@
 package de.octofox.suffixarray;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class SuffixArray {
     private final String text;
@@ -9,17 +10,20 @@ public class SuffixArray {
     /**
      * Holds the suffix at a given position
      * Sorted lexicographically
+     * Manber Myers: POS
      */
     private final int[] suffixRank;
 
     /**
      * Holds the rank of a given suffix position
      * E.g.: rankOfSuffix[ SuffixPos ] = Rank
+     * Manber Myers: PRM
      */
     private final int[] rankOfSuffix;
 
     /**
      * Value is true if the suffix is the lexicographically smallest in its bucket, false otherwise
+     * Manber Myers: BH
      */
     private final boolean[] smallestSuffixInBucket;
 
@@ -32,11 +36,19 @@ public class SuffixArray {
         rankOfSuffix = new int[text.length()];
         smallestSuffixInBucket = new boolean[text.length()];
 
-        firstStageSort();
+        final long start = System.nanoTime();
 
+        firstStageSort();
+        final long endFirstStageSort = System.nanoTime();
+
+        hStageSort();
+        final long endhStageSort = System.nanoTime();
+
+        System.out.println("First stage sort took " + ((endFirstStageSort - start) / 1000000) + "ms");
+        System.out.println("h stage sort took " + ((endhStageSort - endFirstStageSort) / 1000000) + "ms");
         System.out.println("i | Bh | sufinv | suftab | suffix");
         for (int i = 0; i < text.length(); i++) {
-            System.out.println(i + " | " + (smallestSuffixInBucket[i] ? 1 : 0)  + "  | " + rankOfSuffix[i] + "      | " + suffixRank[i] + "      | " + text.substring(suffixRank[i]));
+            System.out.println(i + " | " + (smallestSuffixInBucket[i] ? 1 : 0) + "  | " + rankOfSuffix[i] + "      | " + suffixRank[i] + "      | " + text.substring(suffixRank[i]));
         }
     }
 
@@ -82,7 +94,7 @@ public class SuffixArray {
             int offset;
 
             // For each character of the text iterate over the alphabet
-            for (Map.Entry<Character, Integer> entry: alphabet.entrySet()) {
+            for (Map.Entry<Character, Integer> entry : alphabet.entrySet()) {
                 // If text character does not match the current alphabet character:
                 // add the size of the characters bucket to the current offset
                 // Character 'a' will typically start at offset 0
@@ -121,6 +133,12 @@ public class SuffixArray {
             // Mapping from Suffix to Rank => Suffix_i has Rank of X
             rankOfSuffix[currentSuffix] = offset;
             currentSuffix++;
+        }
+    }
+
+    private void hStageSort() {
+        for (int h = 1; h < textChars.length; h *= 2) {
+
         }
     }
 
