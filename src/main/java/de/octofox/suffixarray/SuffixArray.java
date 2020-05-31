@@ -9,6 +9,12 @@ public class SuffixArray {
     private final int textLength;
 
     /**
+     * Alphabet of the input text
+     * Mapping from Character to bucket size
+     */
+    private final Map<Character, Integer> alphabet;
+
+    /**
      * Holds the suffix at a given rank
      * Sorted lexicographically
      * Index equals lexicographic rank, value equals index of suffix
@@ -26,6 +32,7 @@ public class SuffixArray {
 
     /**
      * Value is true if the suffix is the lexicographically smallest in its bucket, false otherwise
+     * Marks the start of a bucket
      * Manber Myers: BH
      */
     private final boolean[] smallestSuffixInBucket;
@@ -35,13 +42,6 @@ public class SuffixArray {
      */
     private final boolean[] B2H;
 
-    private int bucketCount;
-    /**
-     * Internal array
-     * Maps bucket => size
-     */
-    private final int[] intervals;
-
     /**
      * Array holding the offsets for each bucket
      * Every index with smallestSuffixInBucket[ index ] == true has an entry in 'offsetInBucket'
@@ -50,20 +50,48 @@ public class SuffixArray {
      */
     private final int[] nextFreeIndexInBucket;
 
+    /**
+     * Internal counter for buckets
+     * Used to exit 2h stage early
+     * If bucketCount == textLength => SArray is sorted according to 2h stage
+     */
+    private int bucketCount;
+
+    /**
+     * Internal array
+     * "Linked list" maps value of index 0 to start of next bucket (index)
+     * Start of next bucket links to its next bucket
+     * E.g.: index 0 => value is next index in array
+     */
+    private final int[] intervals;
+
+
     public SuffixArray(final String text) {
         this.text = text;
         this.textChars = text.toCharArray();
         this.textLength = text.length();
 
-        suffixAtRank = new int[textLength];
-        rankOfSuffix = new int[textLength];
-        smallestSuffixInBucket = new boolean[textLength];
-        B2H = new boolean[textLength];
-        nextFreeIndexInBucket = new int[textLength];
+        // TreeMap implementation with explicit Char comparator guarantees lexicographic sorting order
+        this.alphabet = new TreeMap<>(Character::compareTo);
 
-        intervals = new int[textLength];
+        this.suffixAtRank = new int[textLength];
+        this.rankOfSuffix = new int[textLength];
+        this.smallestSuffixInBucket = new boolean[textLength];
+        this.B2H = new boolean[textLength];
+        this.nextFreeIndexInBucket = new int[textLength];
 
+        this.intervals = new int[textLength];
+    }
+
+    /**
+     * Entry method
+     * Computes the alphabet, does the first- and h-stage sort
+     */
+    public void compute() {
         final long start = System.nanoTime();
+
+        computeAlphabet();
+        final long endComputeAlphabet = System.nanoTime();
 
         firstStageSort();
         final long endFirstStageSort = System.nanoTime();
@@ -71,7 +99,8 @@ public class SuffixArray {
         hStageSort();
         final long endhStageSort = System.nanoTime();
 
-        System.out.println("First stage sort took " + ((endFirstStageSort - start) / 1000000) + "ms");
+        System.out.println("Computing the alphabet took " + ((endComputeAlphabet - start) / 1000000) + "ms");
+        System.out.println("First stage sort took " + ((endFirstStageSort - endComputeAlphabet) / 1000000) + "ms");
         System.out.println("h stage sort took " + ((endhStageSort - endFirstStageSort) / 1000000) + "ms");
         System.out.println("i | Bh | sufinv | suftab | suffix");
         for (int i = 0; i < textLength; i++) {
@@ -79,11 +108,10 @@ public class SuffixArray {
         }
     }
 
-    private void firstStageSort() {
-        // Mapping from Character to bucket size
-        // TreeMap implementation with explicit Char comparator guarantees lexicographical sort order
-        Map<Character, Integer> alphabet = new TreeMap<>(Character::compareTo);
-
+    /**
+     * Computes the bucket sizes for each character
+     */
+    private void computeAlphabet() {
         // First iterate over all characters of the text
         for (int i = 0; i < textChars.length; i++) {
             final char currentChar = textChars[i];
@@ -107,10 +135,17 @@ public class SuffixArray {
             // Base value initialization
             suffixAtRank[i] = -1;
             smallestSuffixInBucket[i] = false;
-            //B2H[t] = false;
+            B2H[i] = false;
             nextFreeIndexInBucket[i] = 0;
         }
+    }
 
+    /**
+     * First stage sort
+     * Sorts all suffixes according to their first character
+     * Sets suffixAtRank, rankOfSuffix and smallestSuffixInBucket
+     */
+    private void firstStageSort() {
         int currentSuffix = 0;
 
         // First stage sort comparing the first character of each suffix
@@ -169,6 +204,10 @@ public class SuffixArray {
         for (int h = 1; h < textLength; h *= 2) {
             resetRankOfSuffixArray();
 
+            if (bucketCount == textLength) {
+                return;
+            }
+
             int d = textLength - h;
             int e = rankOfSuffix[d];
             rankOfSuffix[d] = e + nextFreeIndexInBucket[e];
@@ -189,7 +228,7 @@ public class SuffixArray {
 
                 for (int j = i; j < intervals[i]; j++) {
                     d = suffixAtRank[j] - h;
-                    if ( d >= 0 && B2H[rankOfSuffix[d]] ) {
+                    if (d >= 0 && B2H[rankOfSuffix[d]]) {
                         for (int jInner = rankOfSuffix[d] + 1; jInner < textLength; jInner++) {
                             if (smallestSuffixInBucket[jInner] || !B2H[jInner]) {
                                 break;
@@ -201,6 +240,18 @@ public class SuffixArray {
             }
 
 
+            //Updating POS and BH arrays
+            for (int i = 0; i < textLength; i++) {
+                suffixAtRank[rankOfSuffix[i]] = i;
+                // Add B2H flags to smallestSuffixInBucket array
+                smallestSuffixInBucket[i] |= B2H[i];
+            }
+
+        }
+
+        //Updating PRM array
+        for (int i = 0; i < textLength; i++) {
+            rankOfSuffix[suffixAtRank[i]] = i;
         }
 
 /*
@@ -232,11 +283,7 @@ public class SuffixArray {
                 }
             }
 
-            for (int i=0; i<textLength; i++)         //Updating POS and BH arrays
-            {
-                suffixRank[rankOfSuffix[i]]=i;
-                smallestSuffixInBucket[i] |= B2H[i];
-            }
+
         }*/
     }
 
@@ -246,6 +293,7 @@ public class SuffixArray {
      * First compute the needed intervals
      * Intervals are in the form of Bucket start => next bucket start
      * First Bucket (index 0) holds the value for the next bucket start
+     * Then assign the left boundary of the interval to the corresponding bucket entries
      */
     private void resetRankOfSuffixArray() {
         bucketCount = 0;
