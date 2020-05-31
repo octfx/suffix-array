@@ -1,5 +1,9 @@
 package de.octofox.suffixarray;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -118,13 +122,29 @@ public class SuffixArray {
         hStageSort();
         final long endhStageSort = System.nanoTime();
 
-        System.out.println("Computing the alphabet took " + ((endComputeAlphabet - start) / 1000000) + "ms");
-        System.out.println("First stage sort took " + ((endFirstStageSort - endComputeAlphabet) / 1000000) + "ms");
-        System.out.println("h stage sort took " + ((endhStageSort - endFirstStageSort) / 1000000) + "ms");
-        System.out.println("i | Bh | sufinv | suftab | suffix");
-        for (int i = 0; i < textLength; i++) {
-            System.out.println(i + " | " + (smallestSuffixInBucket[i] ? 1 : 0) + "  | " + rankOfSuffix[i] + "      | " + suffixAtRank[i] + "      | " + text.substring(suffixAtRank[i]));
+        final long end = System.nanoTime();
+
+        final long timeAlphabet = endComputeAlphabet - start;
+        final long timeFirstStage = endFirstStageSort - endComputeAlphabet;
+        final long timeHStage = endhStageSort - endFirstStageSort;
+        final long timeElapsedTotal = end - start;
+
+        Runtime runtime = Runtime.getRuntime();
+
+        try                                             //Saving Suffix array to file
+        {
+            write();
+        } catch (Exception e) {
+            System.out.println("Something went wrong during saving SA to file. Check if you are Administrator user on this PC maybe.");
         }
+
+        System.out.println("Computing the alphabet took " + (timeAlphabet / 1000000) + "ms");
+        System.out.println("First stage sort took " + (timeFirstStage / 1000000) + "ms");
+        System.out.println("h stage sort took " + (timeHStage / 1000000) + "ms");
+
+        System.out.println("\n\nSA created in " + timeElapsedTotal / 1000000 + " ms");
+        System.out.println("Used memory " + (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024) + "MB");
+
     }
 
     /**
@@ -219,6 +239,29 @@ public class SuffixArray {
         }
     }
 
+    private int rightBucketBoundary(int x) {
+        for (int i = x; i < textLength; i++) {
+            if (smallestSuffixInBucket[i])
+                return i;
+        }
+        return textLength;
+    }
+
+    private void write() throws IOException {
+        try (BufferedWriter out = new BufferedWriter(new FileWriter("SAOutput.txt"))) {
+            out.write("Sorted suffixes:\n");
+            out.write("[\n");
+            for (int x : suffixAtRank) {
+                out.write(x + ": " + text.substring(x) + ", \n");
+            }
+            out.write("]\n\n\nRank of Suffix (inverse SA)\n[");
+
+            out.write(Arrays.stream(rankOfSuffix).mapToObj(String::valueOf).reduce("", (left, right) -> left + ", " + right));
+
+            out.write("]");
+        }
+    }
+
     private void hStageSort() {
         for (int h = 1; h < textLength; h *= 2) {
             resetRankOfSuffixArray();
@@ -227,85 +270,59 @@ public class SuffixArray {
                 return;
             }
 
+            // d <- N-H
             int d = textLength - h;
+            // e <- Prm[d]
             int e = rankOfSuffix[d];
+            // Prm[d] <- e + Count[e]
             rankOfSuffix[d] = e + nextFreeIndexInBucket[e];
+            // Count[e] <- Count[e] + 1
             nextFreeIndexInBucket[e]++;
+            // B2H[Prm[d]] <- true
             smallestSuffixIn2hBucket[rankOfSuffix[d]] = true;
 
             // For each bucket (interval)
             for (int i = 0; i < textLength; i = intervals[i]) {
                 // For each element in the bucket
-                for (int j = i; j < intervals[i]; j++) {
-                    if (suffixAtRank[j] - h >= 0) {
-                        e = rankOfSuffix[j];
-                        rankOfSuffix[j] = e + nextFreeIndexInBucket[e];
+                // for d \in {Pos[c] - H : c \in [l,r]} \cap [0, N-1] do
+                for (d = i; d < intervals[i]; d++) {
+                    final int s = suffixAtRank[d] - h;
+                    if (s >= 0) {
+                        // e <- Prm[d]
+                        e = rankOfSuffix[s];
+                        // Prm[d] <- e + Count[e]
+                        rankOfSuffix[s] = e + nextFreeIndexInBucket[e];
+                        // Count[e] <- Count[e] + 1
                         nextFreeIndexInBucket[e]++;
-                        smallestSuffixIn2hBucket[rankOfSuffix[j]] = true;
+                        // B2H[Prm[d]] <- true
+                        smallestSuffixIn2hBucket[rankOfSuffix[s]] = true;
                     }
                 }
 
-                for (int j = i; j < intervals[i]; j++) {
-                    d = suffixAtRank[j] - h;
-                    if (d >= 0 && smallestSuffixIn2hBucket[rankOfSuffix[d]]) {
-                        for (int jInner = rankOfSuffix[d] + 1; jInner < textLength; jInner++) {
-                            if (smallestSuffixInBucket[jInner] || !smallestSuffixIn2hBucket[jInner]) {
-                                break;
-                            }
+                // for d \in {Pos[c] - H : c \in [l,r]} \cap [O,N-1] do
+                for (d = i; d < intervals[i]; d++) {
+                    final int s = suffixAtRank[d] - h;
+                    // if B2H[Prm[d]] then
+                    if (s >= 0 && smallestSuffixIn2hBucket[rankOfSuffix[s]]) {
 
+                        for (int k = rankOfSuffix[s] + 1; k < rightBucketBoundary(k); k++) {
+                            smallestSuffixIn2hBucket[k] = false;
                         }
                     }
                 }
             }
 
-
             //Updating POS and BH arrays
             for (int i = 0; i < textLength; i++) {
                 suffixAtRank[rankOfSuffix[i]] = i;
-                // Add 2h stage flags to smallestSuffixInBucket array
-                smallestSuffixInBucket[i] |= smallestSuffixIn2hBucket[i];
-            }
 
-        }
-
-        //Updating PRM array
-        for (int i = 0; i < textLength; i++) {
-            rankOfSuffix[suffixAtRank[i]] = i;
-        }
-
-/*
-        for (int h = 1; h < textLengthh; h *= 2) {
-
-            nextFreeIndexInBucket[rankOfSuffix[textLength - h]]++;
-            B2H[rankOfSuffix[textLength - h]] = true;
-
-            for (int i=0; i<textLength; i=next[i])   //Scan all buckets and update PRM, Count and B2H arrays
-            {
-                for (int j=i; j<next[i]; j++)           //Update arrays
-                {
-                    int s = suffixRank[j] -h;
-                    if (s>=0)
-                    {
-                        int tmp = rankOfSuffix[s];
-                        rankOfSuffix[s] = tmp + nextFreeIndexInBucket[tmp]++;
-                        B2H[rankOfSuffix[s]] = true;
-                    }
-                }
-                for (int j=i; j<next[i]; j++)           //Reset B2H array such that only the leftmost of them in each
-                {                                       //2H-bucket is set to 1, and rest are reset to 0
-                    int s = suffixRank[j] - h;
-                    if (s>=0 && B2H[rankOfSuffix[s]])
-                    {
-                        for (int k=rankOfSuffix[s] + 1; k<FindNextBH(k, BH, textLength); k++)
-                            B2H[k]=false;
-                    }
+                if (smallestSuffixIn2hBucket[i] && !smallestSuffixInBucket[i]) {
+                    //Set(i, H + Min_Height(Prm[Pos[i 1] + HI, Prm[Pos[i] + H]))
+                    smallestSuffixInBucket[i] = smallestSuffixIn2hBucket[i];
                 }
             }
-
-
-        }*/
+        }
     }
-
 
     /**
      * Reset rankOfSuffix (PRM) array to point to the leftmost cell of the H-bucket containing the ith suffix
@@ -341,7 +358,7 @@ public class SuffixArray {
             // assign left boundary (i) to the suffix in bucket
             // j = right interval boundary
             for (int j = i; j < intervals[i]; j++) {
-                rankOfSuffix[suffixAtRank[i]] = i;
+                rankOfSuffix[suffixAtRank[j]] = i;
             }
         }
     }
