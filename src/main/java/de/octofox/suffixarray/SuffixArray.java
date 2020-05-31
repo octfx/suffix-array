@@ -38,9 +38,10 @@ public class SuffixArray {
     private final boolean[] smallestSuffixInBucket;
 
     /**
-     * TODO
+     * Value is true if the suffix is the lexicographically smallest in its 2h bucket, false otherwise
+     * Manber Myers: B2H
      */
-    private final boolean[] B2H;
+    private final boolean[] smallestSuffixIn2hBucket;
 
     /**
      * Array holding the offsets for each bucket
@@ -77,7 +78,7 @@ public class SuffixArray {
         this.suffixAtRank = new int[textLength];
         this.rankOfSuffix = new int[textLength];
         this.smallestSuffixInBucket = new boolean[textLength];
-        this.B2H = new boolean[textLength];
+        this.smallestSuffixIn2hBucket = new boolean[textLength];
         this.nextFreeIndexInBucket = new int[textLength];
 
         this.intervals = new int[textLength];
@@ -135,7 +136,7 @@ public class SuffixArray {
             // Base value initialization
             suffixAtRank[i] = -1;
             smallestSuffixInBucket[i] = false;
-            B2H[i] = false;
+            smallestSuffixIn2hBucket[i] = false;
             nextFreeIndexInBucket[i] = 0;
         }
     }
@@ -212,7 +213,7 @@ public class SuffixArray {
             int e = rankOfSuffix[d];
             rankOfSuffix[d] = e + nextFreeIndexInBucket[e];
             nextFreeIndexInBucket[e]++;
-            B2H[rankOfSuffix[d]] = true;
+            smallestSuffixIn2hBucket[rankOfSuffix[d]] = true;
 
             // For each bucket (interval)
             for (int i = 0; i < textLength; i = intervals[i]) {
@@ -222,15 +223,15 @@ public class SuffixArray {
                         e = rankOfSuffix[j];
                         rankOfSuffix[j] = e + nextFreeIndexInBucket[e];
                         nextFreeIndexInBucket[e]++;
-                        B2H[rankOfSuffix[j]] = true;
+                        smallestSuffixIn2hBucket[rankOfSuffix[j]] = true;
                     }
                 }
 
                 for (int j = i; j < intervals[i]; j++) {
                     d = suffixAtRank[j] - h;
-                    if (d >= 0 && B2H[rankOfSuffix[d]]) {
+                    if (d >= 0 && smallestSuffixIn2hBucket[rankOfSuffix[d]]) {
                         for (int jInner = rankOfSuffix[d] + 1; jInner < textLength; jInner++) {
-                            if (smallestSuffixInBucket[jInner] || !B2H[jInner]) {
+                            if (smallestSuffixInBucket[jInner] || !smallestSuffixIn2hBucket[jInner]) {
                                 break;
                             }
 
@@ -243,8 +244,8 @@ public class SuffixArray {
             //Updating POS and BH arrays
             for (int i = 0; i < textLength; i++) {
                 suffixAtRank[rankOfSuffix[i]] = i;
-                // Add B2H flags to smallestSuffixInBucket array
-                smallestSuffixInBucket[i] |= B2H[i];
+                // Add 2h stage flags to smallestSuffixInBucket array
+                smallestSuffixInBucket[i] |= smallestSuffixIn2hBucket[i];
             }
 
         }
@@ -301,6 +302,7 @@ public class SuffixArray {
 
         // Computation of intervals
         for (int i = 0; i < textLength; i = sizeOfBucket) {
+            // Offset by one so that smallestSuffixInBucket is not immediately true
             sizeOfBucket = 1 + i;
 
             // Loops from bucket start to bucket end
