@@ -3,9 +3,23 @@ package de.octofox.suffixarray;
 import java.util.Map;
 import java.util.TreeMap;
 
+/**
+ * Manber Myer implementation of suffix arrays
+ */
 public class SuffixArray {
+    /**
+     * The input text
+     */
     private final String text;
+
+    /**
+     * Char array of the input text
+     */
     private final char[] textChars;
+
+    /**
+     * Length of the input text
+     */
     private final int textLength;
 
     /**
@@ -66,7 +80,11 @@ public class SuffixArray {
      */
     private final int[] intervals;
 
-
+    /**
+     * Suffix array computation using the manber myers algorithm
+     *
+     * @param text The text to generate the suffix array for
+     */
     public SuffixArray(final String text) {
         this.text = text;
         this.textChars = text.toCharArray();
@@ -110,7 +128,7 @@ public class SuffixArray {
     }
 
     /**
-     * Computes the bucket sizes for each character
+     * Computes the bucket size for each character
      */
     private void computeAlphabet() {
         // First iterate over all characters of the text
