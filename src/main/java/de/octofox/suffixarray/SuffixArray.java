@@ -102,44 +102,69 @@ public class SuffixArray {
     }
 
     /**
-     * A naive binary search
+     * Returns the index into the original string of the <em>i</em>th smallest suffix.
+     * That is, {@code text.substring(sa.index(i))} is the <em>i</em>th smallest suffix.
+     * Doc from: https://algs4.cs.princeton.edu/63suffix/SuffixArray.java.html
      *
-     * @param search Substring to search for
+     * @param i an integer between 0 and <em>n</em>-1
+     * @return the index into the original string of the <em>i</em>th smallest suffix
+     * @throws java.lang.IllegalArgumentException unless {@code 0 <= i < n}
      */
-    public void naiveSearch(final String search) {
-        int l = 0;
-        int r = textLength - 1;
+    public int suffixAtRank(final int i) {
+        if (i < 0 || i > textLength) {
+            throw new IllegalArgumentException();
+        }
 
-        final long searchStart = System.nanoTime();
+        return suffixAtRank[i];
+    }
 
-        while (r - l > 1) {
-            int mid = (l + r) / 2;
+    /**
+     * Returns the number of suffixes strictly less than the {@code query} string.
+     * We note that {@code rank(select(i))} equals {@code i} for each {@code i}
+     * between 0 and <em>n</em>-1.
+     * Code from: https://algs4.cs.princeton.edu/63suffix/SuffixArray.java.html
+     *
+     * @param query the query string
+     * @return the number of suffixes strictly less than {@code query}
+     */
+    public int rank(String query) {
+        int lo = 0;
+        int hi = textChars.length - 1;
 
-            String substringText = text.substring(suffixAtRank[mid], Math.min(suffixAtRank[mid] + search.length(), textLength));
+        while (lo <= hi) {
+            int mid = lo + (hi - lo) / 2;
+            int cmp = compare(query, text.substring(suffixAtRank[mid], Math.min(suffixAtRank[mid] + query.length(), textLength)));
 
-            int res = search.compareTo(substringText);
-
-            if (res == 0) {
-                String out = text.substring(Math.max(0, suffixAtRank[mid] - 10 - substringText.length()), Math.min(suffixAtRank[mid] + 10 + substringText.length(), textLength));
-
-                out = out.replaceFirst(search, ">" + search + "<");
-
-                final long searchEnd = System.nanoTime() - searchStart;
-
-                System.out.println("Found pattern '" + search + "' at index " + suffixAtRank[mid] + " (" + out + ")");
-                System.out.println("Search took " + searchEnd / 1000000 + " ms\n");
-
-                return;
-            }
-
-            if (res < 0) {
-                r = mid;
+            if (cmp < 0) {
+                hi = mid - 1;
+            } else if (cmp > 0) {
+                lo = mid + 1;
             } else {
-                l = mid;
+                return mid;
             }
         }
 
-        System.out.println("Pattern '" + search + "' not found.");
+        return lo;
+    }
+
+    /**
+     * Char wise string compare
+     * @param query String A
+     * @param suffix String B
+     * @return -1 if query < suffix | 1 if query > suffix | 0 if strings are equal
+     */
+    private int compare(String query, String suffix) {
+        int n = Math.min(query.length(), suffix.length());
+        for (int i = 0; i < n; i++) {
+            if (query.charAt(i) < suffix.charAt(i)) {
+                return -1;
+            }
+            if (query.charAt(i) > suffix.charAt(i)) {
+                return +1;
+            }
+        }
+
+        return query.length() - suffix.length();
     }
 
     /**
