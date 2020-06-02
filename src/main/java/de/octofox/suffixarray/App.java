@@ -26,19 +26,22 @@ public class App {
                 System.out.println("Type a substring to search for:");
 
                 final String in = scanner.nextLine();
-                if (in.equals("q")) {
-                    break;
-                } else if (in.equals("naive")) {
-                    System.out.println("Using 'naive' search.");
-                    s = naive;
-                    continue;
-                } else if (in.equals("kwic")) {
-                    System.out.println("Using 'kwic' search.");
-                    s = kwic;
-                    continue;
-                }
 
-                s.search(in);
+                switch (in) {
+                    case "q":
+                        return;
+                    case "naive":
+                        System.out.println("Using 'naive' search.");
+                        s = naive;
+                        break;
+                    case "kwic":
+                        System.out.println("Using 'kwic' search.");
+                        s = kwic;
+                        break;
+                    default:
+                        s.search(in);
+                        break;
+                }
             }
         } else {
             System.out.println("Call jar with '-f filename' to use a local file to sort. Call with one arg: Argument is used as input string.");
