@@ -3,13 +3,26 @@ package de.octofox.suffixarray;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Scanner;
 
 public class App {
     public static void main(String[] args) {
         final String input = parseArgs(args);
 
         if (input.length() > 0) {
-            (new SuffixArray(input)).compute();
+            final SuffixArray sa = new SuffixArray(input);
+            sa.compute();
+            while (true) {
+                Scanner scanner = new Scanner(System.in);
+                System.out.println("Type a substring to search for:");
+
+                final String in = scanner.nextLine();
+                if (in.equals("q")) {
+                    break;
+                }
+
+                sa.naiveSearch(in);
+            }
         } else {
             System.out.println("Call jar with '-f filename' to use a local file to sort. Call with one arg: Argument is used as input string.");
         }

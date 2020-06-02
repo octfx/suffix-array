@@ -102,6 +102,47 @@ public class SuffixArray {
     }
 
     /**
+     * A naive binary search
+     *
+     * @param search Substring to search for
+     */
+    public void naiveSearch(final String search) {
+        int l = 0;
+        int r = textLength - 1;
+
+        final long searchStart = System.nanoTime();
+
+        while (r - l > 1) {
+            int mid = (l + r) / 2;
+
+            String substringText = text.substring(suffixAtRank[mid], Math.min(suffixAtRank[mid] + search.length(), textLength));
+
+            int res = search.compareTo(substringText);
+
+            if (res == 0) {
+                String out = text.substring(Math.max(0, suffixAtRank[mid] - 10 - substringText.length()), Math.min(suffixAtRank[mid] + 10 + substringText.length(), textLength));
+
+                out = out.replaceFirst(search, ">" + search + "<");
+
+                final long searchEnd = System.nanoTime() - searchStart;
+
+                System.out.println("Found pattern '" + search + "' at index " + suffixAtRank[mid] + " (" + out + ")");
+                System.out.println("Search took " + searchEnd / 1000000 + " ms\n");
+
+                return;
+            }
+
+            if (res < 0) {
+                r = mid;
+            } else {
+                l = mid;
+            }
+        }
+
+        System.out.println("Pattern '" + search + "' not found.");
+    }
+
+    /**
      * Entry method
      * Computes the alphabet, does the first- and h-stage sort
      */
@@ -126,19 +167,18 @@ public class SuffixArray {
 
         Runtime runtime = Runtime.getRuntime();
 
-        try {
+/*        try {
             write();
         } catch (Exception e) {
             //
-        }
+        }*/
 
         System.out.println("Computing the alphabet took " + (timeAlphabet / 1000000) + "ms");
         System.out.println("First stage sort took " + (timeFirstStage / 1000000) + "ms");
         System.out.println("h stage sort took " + (timeHStage / 1000000) + "ms");
 
-        System.out.println("\n\nSA created in " + timeElapsedTotal / 1000000 + " ms");
+        System.out.println("\nSA created in " + timeElapsedTotal / 1000000 + " ms");
         System.out.println("Used memory " + (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024) + "MB");
-
     }
 
     /**
