@@ -149,7 +149,8 @@ public class SuffixArray {
 
     /**
      * Char wise string compare
-     * @param query String A
+     *
+     * @param query  String A
      * @param suffix String B
      * @return -1 if query < suffix | 1 if query > suffix | 0 if strings are equal
      */
