@@ -1,5 +1,9 @@
 package de.octofox.suffixarray;
 
+import de.octofox.suffixarray.search.KeywordInContext;
+import de.octofox.suffixarray.search.NaiveSearch;
+import de.octofox.suffixarray.search.Search;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -12,6 +16,11 @@ public class App {
         if (input.length() > 0) {
             final SuffixArray sa = new SuffixArray(input);
             sa.compute();
+
+            final KeywordInContext kwic = new KeywordInContext(sa, input);
+            final NaiveSearch naive = new NaiveSearch(sa, input);
+            Search s = kwic;
+
             while (true) {
                 Scanner scanner = new Scanner(System.in);
                 System.out.println("Type a substring to search for:");
@@ -19,9 +28,17 @@ public class App {
                 final String in = scanner.nextLine();
                 if (in.equals("q")) {
                     break;
+                } else if (in.equals("naive")) {
+                    System.out.println("Using 'naive' search.");
+                    s = naive;
+                    continue;
+                } else if (in.equals("kwic")) {
+                    System.out.println("Using 'kwic' search.");
+                    s = kwic;
+                    continue;
                 }
 
-                sa.naiveSearch(in);
+                s.search(in);
             }
         } else {
             System.out.println("Call jar with '-f filename' to use a local file to sort. Call with one arg: Argument is used as input string.");
