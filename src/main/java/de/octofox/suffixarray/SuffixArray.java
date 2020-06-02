@@ -167,18 +167,37 @@ public class SuffixArray {
 
         Runtime runtime = Runtime.getRuntime();
 
-/*        try {
-            write();
-        } catch (Exception e) {
-            //
-        }*/
-
         System.out.println("Computing the alphabet took " + (timeAlphabet / 1000000) + "ms");
         System.out.println("First stage sort took " + (timeFirstStage / 1000000) + "ms");
         System.out.println("h stage sort took " + (timeHStage / 1000000) + "ms");
 
         System.out.println("\nSA created in " + timeElapsedTotal / 1000000 + " ms");
         System.out.println("Used memory " + (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024) + "MB");
+    }
+
+    /**
+     * Write computed SA to out.txt
+     *
+     * @throws IOException if the named file exists but is a directory rather
+     *                     than a regular file, does not exist but cannot be
+     *                     created, or cannot be opened for any other reason
+     */
+    public void toFile() throws IOException {
+        try (BufferedWriter out = new BufferedWriter(new FileWriter("out.txt"))) {
+            out.write("Sorted suffixes:\n");
+            out.write("Rank => Suffix\n");
+
+            final List<String> suffixes = Arrays.stream(suffixAtRank)
+                    .mapToObj(i -> i + "=" + text.substring(i) + "\n")
+                    .collect(Collectors.toList());
+
+            for (int i = 0; i < suffixes.size(); i++) {
+                out.write(i + ": " + suffixes.get(i));
+            }
+
+            out.write("\n\n\nRank of Suffix (inverse SA)\n");
+            out.write(Arrays.stream(rankOfSuffix).mapToObj(String::valueOf).collect(Collectors.joining(", ")));
+        }
     }
 
     /**
@@ -405,31 +424,6 @@ public class SuffixArray {
             for (int c = l; c < intervals[l]; c++) {
                 rankOfSuffix[suffixAtRank[c]] = l;
             }
-        }
-    }
-
-    /**
-     * Write computed SA to out.txt
-     *
-     * @throws IOException if the named file exists but is a directory rather
-     *                     than a regular file, does not exist but cannot be
-     *                     created, or cannot be opened for any other reason
-     */
-    private void write() throws IOException {
-        try (BufferedWriter out = new BufferedWriter(new FileWriter("out.txt"))) {
-            out.write("Sorted suffixes:\n");
-            out.write("Rank => Suffix\n");
-
-            final List<String> suffixes = Arrays.stream(suffixAtRank)
-                    .mapToObj(i -> i + "=" + text.substring(i) + "\n")
-                    .collect(Collectors.toList());
-
-            for (int i = 0; i < suffixes.size(); i++) {
-                out.write(i + ": " + suffixes.get(i));
-            }
-
-            out.write("\n\n\nRank of Suffix (inverse SA)\n");
-            out.write(Arrays.stream(rankOfSuffix).mapToObj(String::valueOf).collect(Collectors.joining(", ")));
         }
     }
 }
