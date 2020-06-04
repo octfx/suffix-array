@@ -3,10 +3,7 @@ package de.octofox.suffixarray;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -80,6 +77,12 @@ public class SuffixArray {
     private final int[] intervals;
 
     /**
+     * Holds the offset form the start of a bucket to its next free index
+     * Used in first stage sort to eliminate quadratic time complexity
+     */
+    private final Map<Integer, Integer> firstFreeIndexInBucketOffsets;
+
+    /**
      * Suffix array computation using the manber myers algorithm
      *
      * @param text The text to generate the suffix array for
@@ -99,6 +102,8 @@ public class SuffixArray {
         this.nextFreeIndexInBucket = new int[textLength];
 
         this.intervals = new int[textLength];
+
+        this.firstFreeIndexInBucketOffsets = new HashMap<>();
     }
 
     /**
@@ -178,26 +183,26 @@ public class SuffixArray {
         computeAlphabet();
         final long endComputeAlphabet = System.nanoTime();
 
+        final long timeAlphabet = endComputeAlphabet - start;
+        System.out.println("Computing the alphabet took " + (timeAlphabet / 1000000) + "ms");
+
         firstStageSort();
         final long endFirstStageSort = System.nanoTime();
+        final long timeFirstStage = endFirstStageSort - endComputeAlphabet;
+        System.out.println("First stage sort took " + (timeFirstStage / 1000000) + "ms");
 
         hStageSort();
         final long endhStageSort = System.nanoTime();
+        final long timeHStage = endhStageSort - endFirstStageSort;
+        System.out.println("h stage sort took " + (timeHStage / 1000000) + "ms");
 
         final long end = System.nanoTime();
 
-        final long timeAlphabet = endComputeAlphabet - start;
-        final long timeFirstStage = endFirstStageSort - endComputeAlphabet;
-        final long timeHStage = endhStageSort - endFirstStageSort;
         final long timeElapsedTotal = end - start;
 
         Runtime runtime = Runtime.getRuntime();
 
-        System.out.println("Computing the alphabet took " + (timeAlphabet / 1000000) + "ms");
-        System.out.println("First stage sort took " + (timeFirstStage / 1000000) + "ms");
-        System.out.println("h stage sort took " + (timeHStage / 1000000) + "ms");
-
-        System.out.println("\nSA created in " + timeElapsedTotal / 1000000 + " ms");
+        System.out.println("SA created in " + timeElapsedTotal / 1000000 + " ms");
         System.out.println("Used memory " + (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024) + "MB");
     }
 
@@ -268,6 +273,10 @@ public class SuffixArray {
 
         // First stage sort comparing the first character of each suffix
         for (char x : textChars) {
+            if (currentSuffix % 1000 == 0) {
+                System.out.print("Sorting Suffixes: " + currentSuffix + " / " + textChars.length + "\r");
+            }
+
             // Start position of a bucket in the suffix array
             int positionOfStartOfBucket = 0;
             // First free position in a bucket
@@ -293,17 +302,19 @@ public class SuffixArray {
                 }
             }
 
+            if (!firstFreeIndexInBucketOffsets.containsKey(positionOfStartOfBucket)) {
+                firstFreeIndexInBucketOffsets.put(positionOfStartOfBucket, 0);
+            }
+
             // positionOfStartOfBucket will always be first position of bucket
             firstFreeIndexInBucket = positionOfStartOfBucket;
 
             // Mark the position as the start of the bucket
             smallestSuffixInBucket[positionOfStartOfBucket] = true;
 
-            // Check if the current index is already in use
-            // If so increment and check the next index
-            while (suffixAtRank[firstFreeIndexInBucket] != -1) {
-                firstFreeIndexInBucket++;
-            }
+            int firstFreeOffset = firstFreeIndexInBucketOffsets.get(positionOfStartOfBucket);
+            firstFreeIndexInBucket += firstFreeOffset;
+            firstFreeIndexInBucketOffsets.put(positionOfStartOfBucket, ++firstFreeOffset);
 
             // Set the suffix index at the current rank
             // POS array in Manber Myers Algorithm
@@ -324,6 +335,8 @@ public class SuffixArray {
      */
     private void hStageSort() {
         for (int h = 1; h < textLength; h *= 2) {
+            System.out.print("h-Stage prefix size: " + h + "\r");
+
             computeBucketIntervals();
             resetRankOfSuffixArray();
 
